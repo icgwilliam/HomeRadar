@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+casafixvenv/
+.ipynb_checkpoints/
+
+# Otros proyectos en el mismo directorio (no parte de HomeRadar)
+FBGroupsPublisher.ipynb
+FBGroupsPublisher.py
+extract_groups.py
+groups.txt
+
+# CSVs generados (se regeneran cada corrida)
+propiedades_raw.csv
+propiedades_limpias.csv
+propiedades_detalle.csv
+propiedades_info.csv
+
+# Secrets locales (nunca subir tokens)
+.env
+*.token
