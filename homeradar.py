@@ -29,8 +29,8 @@ from urllib3.util.retry import Retry
 # ---------------------------------------------------------------------------
 BASE_URL = "https://www.fincaraiz.com.co"
 START_URL = (
-    "https://www.fincaraiz.com.co/venta/apartamentos/santa-paula/zona-norte/"
-    "bogota/2-habitaciones/2-banos/1-parqueadero"
+    "https://www.fincaraiz.com.co/venta/apartamentos/bogota-dc/"
+    "chapinero-y-en-usaquen/hasta-500000000/publicado-ayer?&IDmoneda=4"
 )
 OUTPUT_RAW = Path("propiedades_raw.csv")
 OUTPUT_CLEAN = Path("propiedades_limpias.csv")
@@ -197,13 +197,25 @@ class CsvSink:
 # ---------------------------------------------------------------------------
 # Scrape
 # ---------------------------------------------------------------------------
+def _paginate(start_url: str, page: int) -> str:
+    """Inserta /paginaN antes del query string si existe.
+
+    'https://x/foo'              + 1 -> 'https://x/foo/pagina1'
+    'https://x/foo?IDmoneda=4'   + 1 -> 'https://x/foo/pagina1?IDmoneda=4'
+    """
+    if "?" in start_url:
+        path, query = start_url.split("?", 1)
+        return f"{path.rstrip('/')}/pagina{page}?{query}"
+    return f"{start_url.rstrip('/')}/pagina{page}"
+
+
 def scrape(start_url: str = START_URL, output: Path = OUTPUT_RAW, max_pages: int = MAX_PAGES) -> Path:
     session = build_session()
     seen_links: set[str] = set()
 
     with CsvSink(output, FIELDS) as sink:
         for page in range(1, max_pages + 1):
-            url = f"{start_url}/pagina{page}"
+            url = _paginate(start_url, page)
             log.info("Pagina %d -> %s", page, url)
             soup = fetch(session, url)
             if soup is None:
