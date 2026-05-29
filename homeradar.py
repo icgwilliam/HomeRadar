@@ -30,7 +30,7 @@ from urllib3.util.retry import Retry
 BASE_URL = "https://www.fincaraiz.com.co"
 START_URL = (
     "https://www.fincaraiz.com.co/venta/apartamentos/bogota-dc/"
-    "chapinero-y-en-usaquen/hasta-500000000/publicado-ayer?&IDmoneda=4"
+    "chapinero-alto-y-en-usaquen/hasta-500000000/publicado-ayer"
 )
 OUTPUT_RAW = Path("propiedades_raw.csv")
 OUTPUT_CLEAN = Path("propiedades_limpias.csv")
