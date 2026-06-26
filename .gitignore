@@ -5,18 +5,23 @@ venv/
 casafixvenv/
 .ipynb_checkpoints/
 
-# Otros proyectos en el mismo directorio (no parte de HomeRadar)
+# Notebooks y proyectos colaterales (no parte de HomeRadar)
+*.ipynb
+HomeRadar.ipynb
 FBGroupsPublisher.ipynb
 FBGroupsPublisher.py
 extract_groups.py
 groups.txt
 
 # CSVs generados (se regeneran cada corrida)
-propiedades_raw.csv
-propiedades_limpias.csv
-propiedades_detalle.csv
-propiedades_info.csv
+propiedades_*.csv
 
-# Secrets locales (nunca subir tokens)
+# Secrets locales (nunca subir tokens ni credenciales)
 .env
+.env.*
 *.token
+*.key
+secrets.json
+subscribers.json
+qr*.png
+qr*.svg
