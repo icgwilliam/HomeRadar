@@ -221,9 +221,10 @@ def main() -> int:
         run_polling(token, gist_token, gist_id)
     else:
         if not args.url:
-            log.error("Modo webhook requiere --url o WEBHOOK_URL")
-            return 1
-        run_webhook(token, gist_token, gist_id, port, args.url)
+            log.warning("WEBHOOK_URL no definida: usando modo polling (long-poll)")
+            run_polling(token, gist_token, gist_id)
+        else:
+            run_webhook(token, gist_token, gist_id, port, args.url)
     return 0
 
 

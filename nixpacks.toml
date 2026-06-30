@@ -5,4 +5,4 @@ nixPkgs = ["python311"]
 cmds = ["pip install -r requirements-bot.txt"]
 
 [start]
-cmd = "python bot.py --url ${WEBHOOK_URL}"
+cmd = "python bot.py"
