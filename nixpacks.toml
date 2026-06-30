@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = ["pip install -r requirements-bot.txt"]
+
+[start]
+cmd = "python bot.py --url ${WEBHOOK_URL}"
