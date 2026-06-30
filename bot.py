@@ -144,6 +144,17 @@ class WebhookHandler(BaseHTTPRequestHandler):
     gist_token: str = ""
     gist_id: str = ""
 
+    def do_GET(self) -> None:  # noqa: N802  (health checks de Railway/Telegram)
+        path = urlparse(self.path).path
+        if path == "/" or path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"HomeRadar bot OK")
+            return
+        self.send_response(404)
+        self.end_headers()
+
     def do_POST(self) -> None:  # noqa: N802
         if urlparse(self.path).path != "/webhook":
             self.send_response(404)
@@ -157,6 +168,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.end_headers()
             return
+        # responder 200 rapido a Telegram y procesar despues
         self.send_response(200)
         self.end_headers()
         try:
@@ -174,12 +186,22 @@ def run_webhook(token: str, gist_token: str, gist_id: str, port: int, url: str) 
     WebhookHandler.gist_token = gist_token
     WebhookHandler.gist_id = gist_id
 
+    # Arrancar el servidor PRIMERO: asi Railway/Telegram ven el endpoint
+    # inmediatamente y no matan el proceso por health check fallido.
+    server = ThreadingHTTPServer(("0.0.0.0", port), WebhookHandler)
+    log.info("Escuchando en 0.0.0.0:%d (health: GET /)", port)
+
     webhook_url = f"{url.rstrip('/')}/webhook"
     log.info("Registrando webhook %s", webhook_url)
-    requests.post(f"{base}/setWebhook", json={"url": webhook_url}, timeout=15)
+    try:
+        resp = requests.post(f"{base}/setWebhook", json={"url": webhook_url}, timeout=15)
+        if resp.ok and resp.json().get("ok"):
+            log.info("Webhook registrado OK en Telegram")
+        else:
+            log.error("setWebhook fallo: %s %s", resp.status_code, resp.text[:200])
+    except requests.RequestException as exc:
+        log.error("setWebhook red no disponible: %s", exc)
 
-    server = ThreadingHTTPServer(("0.0.0.0", port), WebhookHandler)
-    log.info("Escuchando en 0.0.0.0:%d", port)
     server.serve_forever()
 
 
