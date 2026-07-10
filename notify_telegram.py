@@ -159,7 +159,26 @@ def main() -> int:
 
     df = pd.read_csv(INPUT_FILE)
     df = df.dropna(subset=["valor_m2"]).sort_values("valor_m2", ascending=True)
+
+    # Deduplicacion: filtrar propiedades ya enviadas (historial en gist).
+    # Metrocuadrado no expone fecha de publicacion, asi que evitamos repetir
+    # el mismo listado todos los dias enviando solo propiedades NUEVAS.
+    sent_links: set[str] = set()
+    gist_token = os.environ.get("GIST_TOKEN")
+    gist_id = os.environ.get("GIST_ID")
+    if gist_token and gist_id:
+        try:
+            sent_links = utils_gist.read_sent_history(gist_token, gist_id)
+            log.info("Historial: %d links ya enviados", len(sent_links))
+        except Exception as exc:  # noqa: BLE001
+            log.warning("No se pudo leer historial: %s", exc)
+
+    before = len(df)
+    df = df[~df["link"].isin(sent_links)].reset_index(drop=True)
     total = len(df)
+    skipped = before - total
+    if skipped:
+        log.info("Filtradas %d propiedades ya enviadas, quedan %d", skipped, total)
 
     today = datetime.now(BOGOTA).strftime("%Y-%m-%d")
     if total == 0:
@@ -168,7 +187,7 @@ def main() -> int:
                 send_message(
                     token,
                     cid,
-                    f"🏠 <b>HomeRadar {today}</b>\nNo se encontraron propiedades hoy.",
+                    f"🏠 <b>HomeRadar {today}</b>\nNo hay propiedades nuevas hoy.",
                 )
             except requests.RequestException as exc:
                 log.error("Chat %s fallo: %s", cid, _redact(str(exc), token))
@@ -179,7 +198,7 @@ def main() -> int:
 
     header = (
         f"🏠 <b>HomeRadar · {today}</b>\n"
-        f"<b>{total}</b> propiedades · ordenadas por valor/m² ↑\n"
+        f"<b>{total}</b> propiedades nuevas · ordenadas por valor/m² ↑\n"
         f"Mediana: <b>{_fmt_money(mediana)}/m²</b> · "
         f"P25: <b>{_fmt_money(p25)}/m²</b>"
     )
@@ -203,6 +222,14 @@ def main() -> int:
                           cid, i, len(messages), _redact(str(exc), token))
             # rate-limit global de Telegram: ~30 msg/s, usamos 1s por seguridad
             time.sleep(1)
+
+    # Actualizar historial con los links enviados (solo si hubo al menos 1 envio ok)
+    if gist_token and gist_id and sent > failed and total > 0:
+        try:
+            utils_gist.add_sent_links(gist_token, gist_id, df["link"].tolist())
+            log.info("Historial actualizado: +%d links", total)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("No se pudo actualizar historial: %s", exc)
 
     if failed:
         log.warning("Listo con %d/%d envios fallidos", failed, total_sends)

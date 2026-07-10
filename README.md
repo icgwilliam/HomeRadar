@@ -1,6 +1,6 @@
 # HomeRadar
 
-Scraper diario de [fincaraiz.com.co](https://www.fincaraiz.com.co) que envía las propiedades encontradas a los suscriptores de un bot de Telegram, ordenadas por mejor valor por metro cuadrado.
+Scraper diario de [fincaraiz.com.co](https://www.fincaraiz.com.co) y [metrocuadrado.com](https://www.metrocuadrado.com) que envía las propiedades encontradas a los suscriptores de un bot de Telegram, ordenadas por mejor valor por metro cuadrado.
 
 Cualquiera que escanee el **QR del bot** (o abra el enlace de Telegram del bot) y envíe `/start` queda suscrito y recibe el listado diario. `/stop` lo da de baja.
 
@@ -10,14 +10,17 @@ Corre automáticamente todos los días a las **9:00 AM hora Colombia** vía GitH
 
 | Componente | Rol |
 |---|---|
-| `homeradar.py` | Scrapea fincaraiz, limpia datos y genera `propiedades_limpias.csv` |
+| `homeradar.py` | Scrapea fincaraiz (paginando), fusiona metrocuadrado, limpia y genera `propiedades_limpias.csv` |
+| `metrocuadrado.py` | Scrapea metrocuadrado via JSON embebido (Usaquén + Chapinero) |
 | `notify_telegram.py` | Lee el CSV y difunde el listado a **todos los suscriptores** |
 | `bot.py` | Webhook del bot de Telegram: gestiona `/start`, `/stop`, `/help` |
 | `utils_gist.py` | Persiste la lista de `chat_id` suscritos en un gist privado de GitHub |
 | `.github/workflows/daily.yml` | Cron de GitHub Actions (14:00 UTC = 9:00 COL) |
 | `requirements.txt` | Dependencias |
 
-Los `chat_id` de los suscriptores se guardan en un **gist privado de GitHub** (`subscribers.json`), compartido entre el bot (escribe) y el notifier (lee). Ningún token se versiona: todo vive en GitHub Secrets / variables de entorno.
+Los `chat_id` de los suscriptores y el **historial de propiedades ya enviadas** se guardan en un **gist privado de GitHub** (`subscribers.json` + `sent_history.json`), compartido entre el bot (escribe suscriptores) y el notifier (lee ambos). Ningún token se versiona: todo vive en GitHub Secrets / variables de entorno.
+
+**Deduplicación:** el notifier filtra las propiedades ya enviadas en corridas anteriores (comparando por `link`), de modo que cada día solo llegan propiedades **nuevas**. Esto evita repetir el mismo listado (especialmente de metrocuadrado, que no expone fecha de publicación). El historial retiene los últimos 2000 links.
 
 ## Setup inicial (una sola vez)
 

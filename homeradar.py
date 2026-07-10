@@ -1,8 +1,13 @@
-"""HomeRadar: scraper de fincaraiz.com.co + limpieza.
+"""HomeRadar: scraper de fincraiz.com.co + metrocuadrado.com + limpieza.
 
-Genera dos CSV en el directorio actual:
-  - propiedades_raw.csv      (datos crudos)
-  - propiedades_limpias.csv  (numerico, dedupe, valor_m2)
+Scrapea fincaraiz (paginando) y metrocuadrado (JSON embebido), fusiona
+ambos en ``propiedades_raw.csv`` y luego genera ``propiedades_limpias.csv``
+(numerico, dedupe, valor_m2).
+
+Genera ademas:
+  - propiedades_raw.csv       (fincaraiz + metrocuadrado fusionados)
+  - propiedades_limpias.csv   (numerico, dedupe, valor_m2)
+  - metrocuadrado_raw.csv     (datos crudos de metrocuadrado)
 
 Uso:
     python homeradar.py
@@ -216,6 +221,7 @@ def scrape(start_url: str = START_URL, output: Path = OUTPUT_RAW, max_pages: int
     with CsvSink(output, FIELDS) as sink:
         for page in range(1, max_pages + 1):
             url = _paginate(start_url, page)
+            url = _paginate(start_url, page)
             log.info("Pagina %d -> %s", page, url)
             soup = fetch(session, url)
             if soup is None:
@@ -340,10 +346,33 @@ def clean(input_file: Path = OUTPUT_RAW, output_file: Path = OUTPUT_CLEAN) -> pd
 
 
 # ---------------------------------------------------------------------------
+# Fusion de fuentes
+# ---------------------------------------------------------------------------
+def merge_csvs(target: Path, extra: Path) -> None:
+    """Anade las filas de `extra` a `target` (ambos con el mismo esquema)."""
+    if not extra.exists():
+        return
+    with target.open("a", newline="", encoding="utf-8") as out, \
+         extra.open("r", newline="", encoding="utf-8") as inp:
+        reader = csv.reader(inp)
+        writer = csv.writer(out)
+        next(reader, None)  # saltar header de extra
+        for row in reader:
+            writer.writerow(row)
+    log.info("Fusionado %s en %s", extra.name, target.name)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
+    # 1. Fincaraiz -> propiedades_raw.csv
     scrape()
+    # 2. Metrocuadrado -> metrocuadrado_raw.csv, fusionar en propiedades_raw.csv
+    import metrocuadrado
+    metrocuadrado.scrape()
+    merge_csvs(OUTPUT_RAW, metrocuadrado.OUTPUT_RAW)
+    # 3. Limpiar y calcular valor_m2
     clean()
 
 
