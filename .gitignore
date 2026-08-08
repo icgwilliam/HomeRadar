@@ -16,6 +16,11 @@ groups.txt
 # CSVs generados (se regeneran cada corrida)
 propiedades_*.csv
 metrocuadrado_raw.csv
+oportunidades_flipping.csv
+oportunidades_flipping.json
+reporte_whatsapp.txt
+.whatsapp_alert_history.json
+.whatsapp_alert_pending.json
 
 # Secrets locales (nunca subir tokens ni credenciales)
 .env

@@ -33,6 +33,7 @@ from urllib3.util.retry import Retry
 BASE_URL = "https://www.metrocuadrado.com"
 ZONAS = [
     "https://www.metrocuadrado.com/apartamento/venta/bogota/usaquen/?search=form",
+    "https://www.metrocuadrado.com/apartamento/venta/bogota/suba/?search=form",
     "https://www.metrocuadrado.com/apartamento/venta/usado/bogota/chapinero/?search=form",
 ]
 OUTPUT_RAW = Path("metrocuadrado_raw.csv")

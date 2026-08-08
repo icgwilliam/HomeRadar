@@ -11,7 +11,8 @@ Corre automáticamente todos los días a las **9:00 AM hora Colombia** vía GitH
 | Componente | Rol |
 |---|---|
 | `homeradar.py` | Scrapea fincaraiz (paginando), fusiona metrocuadrado, limpia y genera `propiedades_limpias.csv` |
-| `metrocuadrado.py` | Scrapea metrocuadrado via JSON embebido (Usaquén + Chapinero) |
+| `metrocuadrado.py` | Scrapea metrocuadrado via JSON embebido (Usaquén + Suba + Chapinero) |
+| `analyze_flips.py` | Preselecciona oportunidades de house flipping y genera el reporte para CasaFix |
 | `notify_telegram.py` | Lee el CSV y difunde el listado a **todos los suscriptores** |
 | `bot.py` | Webhook del bot de Telegram: gestiona `/start`, `/stop`, `/help` |
 | `utils_gist.py` | Persiste la lista de `chat_id` suscritos en un gist privado de GitHub |
@@ -90,6 +91,7 @@ Quien escanee el QR abre el bot → toca **Iniciar** → Telegram envía `/start
 ```powershell
 pip install -r requirements.txt
 python homeradar.py
+python analyze_flips.py --max-price 500000000 --localities usaquen,suba,chapinero
 
 # Probar el envío a Telegram en local:
 $env:TELEGRAM_BOT_TOKEN = "tu_token"
@@ -97,6 +99,38 @@ $env:GIST_TOKEN = "tu_pat"
 $env:GIST_ID = "tu_gist_id"
 python notify_telegram.py
 ```
+
+## Alertas de house flipping para CasaFix
+
+`analyze_flips.py` filtra propiedades dentro del presupuesto y las localidades
+objetivo, calcula comparables con el lote observado y genera:
+
+- `oportunidades_flipping.csv`: candidatos y métricas auditables.
+- `oportunidades_flipping.json`: salida estructurada para integraciones.
+- `reporte_whatsapp.txt`: mensaje listo para publicar en WhatsApp.
+
+Configuración inicial de CasaFix:
+
+- Compra máxima: COP $500.000.000.
+- Localidades: Usaquén, Suba y Chapinero.
+- Descuento mínimo preliminar: 12 % frente a comparables de la misma localidad
+  con área entre 70 % y 130 % del inmueble.
+- Puntaje mínimo: 60/100.
+- Mínimo de comparables: 5.
+- Control de datos atípicos: área entre 25 y 250 m² y valor entre $2 y $30
+  millones por m².
+
+El ARV y el margen reportados son preliminares. No incluyen remodelación,
+impuestos, escrituración, financiación, sostenimiento ni costos de venta.
+Antes de invertir se requiere visita, estudio jurídico y presupuesto de obra.
+
+El envío al grupo de WhatsApp se ejecuta desde el OpenClaw conectado a CasaFix,
+sin WhatsApp Business Platform. Si `reporte_whatsapp.txt` queda vacío, no se
+publica ninguna alerta.
+
+`whatsapp_delivery.py prepare` excluye enlaces ya alertados y vuelve a generar
+el reporte. Después de un envío correcto, `whatsapp_delivery.py mark-sent`
+confirma esos enlaces en el historial local para no repetirlos.
 
 ## Personalizar la búsqueda
 

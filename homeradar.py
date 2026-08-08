@@ -334,8 +334,19 @@ def clean(input_file: Path = OUTPUT_RAW, output_file: Path = OUTPUT_CLEAN) -> pd
         "banos":        df_raw["banos"].apply(limpiar_numero),
         "area_m2":      df_raw["area"].apply(limpiar_area),
     })
-    if "estrato" in df_raw.columns:
-        df["estrato"] = df_raw["estrato"].apply(limpiar_numero)
+    numeric_fields = {
+        "estrato": "estrato",
+        "administracion": "administracion",
+        "parqueaderos": "parqueaderos",
+    }
+    for source, target in numeric_fields.items():
+        if source in df_raw.columns:
+            cleaner = limpiar_precio if source == "administracion" else limpiar_numero
+            df[target] = df_raw[source].apply(cleaner)
+
+    for field in ("antiguedad", "ubicacion"):
+        if field in df_raw.columns:
+            df[field] = df_raw[field].fillna("").astype(str)
 
     df = df.drop_duplicates(subset="link").reset_index(drop=True)
     df["valor_m2"] = (df["precio"] / df["area_m2"]).round(2)

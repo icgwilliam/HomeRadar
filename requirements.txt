@@ -1,2 +1,4 @@
 requests>=2.31
 urllib3>=2.0
+beautifulsoup4>=4.12
+pandas>=2.0
