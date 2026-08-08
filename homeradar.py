@@ -93,6 +93,7 @@ def fetch(session: requests.Session, url: str) -> Optional[BeautifulSoup]:
 FIELDS = [
     "link", "title", "precio", "habitaciones", "banos", "area",
     "estrato", "administracion", "antiguedad", "ubicacion", "parqueaderos",
+    "piso", "ascensor", "exterior", "vista",
 ]
 
 
@@ -109,6 +110,10 @@ class Property:
     antiguedad: str = ""
     ubicacion: str = ""
     parqueaderos: str = ""
+    piso: str = ""
+    ascensor: str = ""
+    exterior: str = ""
+    vista: str = ""
 
 
 DETAIL_KEYS = {
@@ -128,6 +133,8 @@ DETAIL_KEYS = {
     "ubicacion":       "ubicacion",
     "ubicación":       "ubicacion",
     "parqueaderos":    "parqueaderos",
+    "piso":            "piso",
+    "ascensor":        "ascensor",
 }
 
 
@@ -167,6 +174,14 @@ def parse_property(soup: BeautifulSoup, url: str) -> Property:
         val = spans[1].get_text(strip=True)
         if (field_name := DETAIL_KEYS.get(key)) and not getattr(prop, field_name):
             setattr(prop, field_name, val)
+
+    full_text = soup.get_text(" ", strip=True).lower()
+    if not prop.ascensor and "ascensor" in full_text:
+        prop.ascensor = "si"
+    if "vista exterior" in full_text or "vista: exterior" in full_text:
+        prop.exterior = "si"
+    if "vista panoramica" in full_text or "vista panorámica" in full_text:
+        prop.vista = "si"
 
     return prop
 
@@ -344,9 +359,11 @@ def clean(input_file: Path = OUTPUT_RAW, output_file: Path = OUTPUT_CLEAN) -> pd
             cleaner = limpiar_precio if source == "administracion" else limpiar_numero
             df[target] = df_raw[source].apply(cleaner)
 
-    for field in ("antiguedad", "ubicacion"):
+    for field in ("antiguedad", "ubicacion", "ascensor", "exterior", "vista"):
         if field in df_raw.columns:
             df[field] = df_raw[field].fillna("").astype(str)
+    if "piso" in df_raw.columns:
+        df["piso"] = df_raw["piso"].apply(limpiar_numero)
 
     df = df.drop_duplicates(subset="link").reset_index(drop=True)
     df["valor_m2"] = (df["precio"] / df["area_m2"]).round(2)

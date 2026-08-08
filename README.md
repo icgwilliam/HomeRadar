@@ -124,6 +124,20 @@ El ARV y el margen reportados son preliminares. No incluyen remodelación,
 impuestos, escrituración, financiación, sostenimiento ni costos de venta.
 Antes de invertir se requiere visita, estudio jurídico y presupuesto de obra.
 
+El puntaje de preselección pondera:
+
+- Descuento frente a comparables publicados: 25 %.
+- Margen bruto preliminar: 25 %.
+- Ubicación objetivo: 15 %.
+- Parqueaderos: 10 %.
+- Alcobas acordes a la microzona: 5 %.
+- Antigüedad/riesgo estructural: 5 %.
+- Administración, piso, ascensor, exterior y vista: 15 %.
+
+Un anuncio que confirme que el edificio no tiene ascensor queda excluido. Un
+dato ausente se muestra como pendiente y no se interpreta automáticamente como
+incumplimiento. Cada alerta incluye el estado de los criterios auditables.
+
 El envío al grupo de WhatsApp se ejecuta desde el OpenClaw conectado a CasaFix,
 sin WhatsApp Business Platform. Si `reporte_whatsapp.txt` queda vacío, no se
 publica ninguna alerta.

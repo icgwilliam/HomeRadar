@@ -47,6 +47,7 @@ USER_AGENT = (
 FIELDS = [
     "link", "title", "precio", "habitaciones", "banos", "area",
     "estrato", "administracion", "antiguedad", "ubicacion", "parqueaderos",
+    "piso", "ascensor", "exterior", "vista",
 ]
 
 logging.basicConfig(
@@ -95,6 +96,10 @@ class Property:
     antiguedad: str = ""
     ubicacion: str = ""
     parqueaderos: str = ""
+    piso: str = ""
+    ascensor: str = ""
+    exterior: str = ""
+    vista: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +119,11 @@ def _string_field(record: str, name: str) -> str:
 def _number_field(record: str, name: str) -> Optional[float]:
     match = re.search(rf'\\"{re.escape(name)}\\":(-?\d+(?:\.\d+)?)', record)
     return float(match.group(1)) if match else None
+
+
+def _featured_field(record: str, name: str) -> str:
+    match = re.search(rf'{re.escape(name)}:([^"\\,]+)', record, flags=re.IGNORECASE)
+    return match.group(1).strip() if match else ""
 
 
 def parse_listing(html: str, zona_name: str) -> list[Property]:
@@ -144,6 +154,13 @@ def parse_listing(html: str, zona_name: str) -> list[Property]:
             area=f"{area:g} m2",
             ubicacion=f"{_string_field(record, 'mbarrio')}, {zona_name}",
             parqueaderos=_string_field(record, "mnrogarajes"),
+            estrato=f"{_number_field(record, 'estrato'):g}" if _number_field(record, "estrato") is not None else "",
+            administracion=_string_field(record, "mvaloradministracion"),
+            antiguedad=_featured_field(record, "tiempoConstruido"),
+            piso=_featured_field(record, "nroPiso"),
+            ascensor={"s": "si", "n": "no"}.get(_featured_field(record, "ascensor").lower(), ""),
+            exterior="si" if _featured_field(record, "vista").lower() == "exterior" else "",
+            vista="si" if _featured_field(record, "conVistaPanoramica").lower() == "s" else "",
         ))
     log.info("  %s: %d propiedades", zona_name, len(props))
     return props

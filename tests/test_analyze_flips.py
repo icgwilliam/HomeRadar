@@ -57,3 +57,23 @@ def test_property_without_comparables_does_not_crash() -> None:
     result = analyze(frame)
 
     assert result.empty
+
+
+def test_explicitly_no_elevator_is_excluded() -> None:
+    frame = sample_frame()
+    frame["ascensor"] = "si"
+    frame.loc[frame["link"].str.endswith("/oportunidad"), "ascensor"] = "no"
+
+    result = analyze(frame)
+
+    assert result.empty
+
+
+def test_report_displays_property_criteria() -> None:
+    result = analyze(sample_frame())
+    report = build_report(result)
+
+    assert "*Criterios:*" in report
+    assert "Ascensor:" in report
+    assert "Administración:" in report
+    assert "Buena vista:" in report
