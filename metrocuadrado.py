@@ -103,13 +103,17 @@ class Property:
 # Orden de campos en el chunk serializado (escapes \\"):
 #   title -> link -> midinmueble -> mvalorventa -> marea ->
 #   mnrocuartos -> mnrobanos -> mnrogarajes -> mbarrio
-PROP_RE = re.compile(
-    r'\\"title\\":\\"([^"]*)\\",\\"link\\":\\"([^"]*)\\".*?'
-    r'\\"mvalorventa\\":(\d+),\\"mvalorarriendo\\".*?'
-    r'\\"marea\\":(\d+),\\"mareac\\":(\d+),\\"areaprivada\\":[^,]+,\\"mnrocuartos\\":\\"([^"]*)\\",'
-    r'\\"mnrobanos\\":\\"([^"]*)\\",\\"mnrogarajes\\":\\"([^"]*)\\".*?'
-    r'\\"mbarrio\\":\\"([^"]*)\\"'
-)
+RECORD_START = r'{\"contactPhone\"'
+
+
+def _string_field(record: str, name: str) -> str:
+    match = re.search(rf'\\"{re.escape(name)}\\":\\"([^"]*)\\"', record)
+    return match.group(1) if match else ""
+
+
+def _number_field(record: str, name: str) -> Optional[float]:
+    match = re.search(rf'\\"{re.escape(name)}\\":(-?\d+(?:\.\d+)?)', record)
+    return float(match.group(1)) if match else None
 
 
 def parse_listing(html: str, zona_name: str) -> list[Property]:
@@ -119,19 +123,27 @@ def parse_listing(html: str, zona_name: str) -> list[Property]:
         log.warning("No se encontro 'initialResults' en %s", zona_name)
         return []
     chunk = html[idx:]
-    matches = PROP_RE.findall(chunk)
+    # Delimitar cada resultado evita mezclar campos de dos inmuebles cuando
+    # alguno viene ausente en el JSON.
+    records = chunk.split(RECORD_START)[1:]
     props: list[Property] = []
-    for m in matches:
-        title, link, precio, area, _area_c, habs, banos, garajes, barrio = m
+    for record in records:
+        link = _string_field(record, "link")
+        precio = _number_field(record, "mvalorventa")
+        area_construida = _number_field(record, "mareac")
+        area_total = _number_field(record, "marea")
+        area = area_construida if area_construida and area_construida > 0 else area_total
+        if not link or precio is None or area is None or area <= 0:
+            continue
         props.append(Property(
             link=BASE_URL + link,
-            title=title,
+            title=_string_field(record, "title"),
             precio=str(int(precio)),
-            habitaciones=habs,
-            banos=banos,
-            area=f"{area} m2",
-            ubicacion=f"{barrio}, {zona_name}",
-            parqueaderos=garajes,
+            habitaciones=_string_field(record, "mnrocuartos"),
+            banos=_string_field(record, "mnrobanos"),
+            area=f"{area:g} m2",
+            ubicacion=f"{_string_field(record, 'mbarrio')}, {zona_name}",
+            parqueaderos=_string_field(record, "mnrogarajes"),
         ))
     log.info("  %s: %d propiedades", zona_name, len(props))
     return props
