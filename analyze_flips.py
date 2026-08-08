@@ -177,6 +177,10 @@ def analyze(
     market["vista_confirmada"] = market.get(
         "vista", pd.Series("", index=market.index)
     ).apply(known_yes)
+    # Suba queda al occidente de la Autopista Norte y por fuera del corredor
+    # definido. En Chapinero/Usaquén la dirección exacta aún debe validarse
+    # porque los portales no siempre entregan coordenadas o nomenclatura.
+    market["ubicacion_objetivo"] = market["localidad"].isin(("chapinero", "usaquen"))
     floor = pd.to_numeric(
         market.get("piso", pd.Series(math.nan, index=market.index)),
         errors="coerce",
@@ -184,7 +188,7 @@ def analyze(
 
     discount_points = market["descuento_mercado"].clip(lower=0, upper=0.25) / 0.25 * 25
     margin_points = market["margen_sobre_compra"].clip(lower=0, upper=0.40) / 0.40 * 25
-    location_points = pd.Series(15.0, index=market.index)
+    location_points = market["ubicacion_objetivo"].astype(float) * 15
 
     parking = pd.to_numeric(
         market.get("parqueaderos", pd.Series(math.nan, index=market.index)),
@@ -228,6 +232,7 @@ def analyze(
         (market["precio"] <= max_price)
         & (market["numero_comparables"] >= MIN_COMPS)
         & (market["descuento_mercado"] >= min_discount)
+        & market["ubicacion_objetivo"]
         & (market["ascensor_confirmado"] != False)
         & (market["puntaje"] >= min_score)
     ].copy()
@@ -269,7 +274,7 @@ def build_report(candidates: pd.DataFrame, max_items: int = 5) -> str:
             f"ARV preliminar: {money(row['arv_preliminar'])} · margen bruto: {money(row['margen_bruto_preliminar'])}",
             f"Comparables: {int(row['numero_comparables'])} · confianza {row['confianza']}.{signals}",
             "*Criterios:*",
-            f"• Ubicación: ✅ zona objetivo · Parqueadero: {criterion(parking_ok, parking_label, 'sin parqueadero')}",
+            f"• Ubicación: {criterion(row.get('ubicacion_objetivo'), 'zona amplia; validar corredor exacto', 'fuera del corredor')} · Parqueadero: {criterion(parking_ok, parking_label, 'sin parqueadero')}",
             f"• Alcobas/microzona: {criterion(row.get('alcobas_adecuadas'), 'acordes', 'no ideales')} · Antigüedad: {criterion(row.get('antiguedad_adecuada'), 'posterior a 1998', 'anterior a 1998')}",
             f"• Ascensor: {criterion(row.get('ascensor_confirmado'), 'confirmado', 'sin ascensor')} · {floor_text}",
             f"• Administración: {criterion(admin_ok, 'baja frente a pares', 'alta frente a pares')} · Exterior: {criterion(row.get('exterior_confirmado'), 'sí', 'no')}",

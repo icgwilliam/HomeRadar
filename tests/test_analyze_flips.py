@@ -77,3 +77,11 @@ def test_report_displays_property_criteria() -> None:
     assert "Ascensor:" in report
     assert "Administración:" in report
     assert "Buena vista:" in report
+
+
+def test_suba_is_outside_target_corridor() -> None:
+    frame = sample_frame()
+    frame["ubicacion"] = "Suba"
+    frame["title"] = "Apartamento en venta en Suba"
+
+    assert analyze(frame).empty
